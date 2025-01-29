@@ -21,6 +21,14 @@ export interface WeeklySummary {
   };
 }
 
+export interface DailySummaryType {
+  totalTime: number
+  completedTasks: number
+  totalTasks: number
+  pendingTasks: number
+}
+
+
 export interface DateRange {
   start: Date;
   end: Date;
