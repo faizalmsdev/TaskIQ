@@ -176,7 +176,7 @@ function App() {
         <h1 className="text-4xl font-extrabold mb-8 text-center flex items-center justify-center space-x-2">
           <Brain className="w-10 h-10 text-blue-400" />
           <span className="bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text font-sans">
-            Second Brain
+            TaskIQ
           </span>
         </h1>
         <div className="flex justify-between items-center mb-8">
