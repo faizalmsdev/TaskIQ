@@ -1,100 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import { Clock } from './components/Clock';
-import { TaskList } from './components/TaskList';
-import { Summary } from './components/Summary';
-import { DailySummary } from './components/DailySummary';
-import { TaskModal } from './components/TaskModal';
-import { Task, WeeklySummary, DailySummary as DailySummaryType, DateRange } from './types';
-import { Timer, ListTodo } from 'lucide-react';
-import { getTasks, saveTasks, clearTasks } from './utils/indexeDB';  // Import the IndexedDB utilities
+import type React from "react"
+import { useState, useEffect } from "react"
+import { Clock } from "./components/Clock"
+import { TaskList } from "./components/TaskList"
+import { Summary } from "./components/Summary"
+import { DailySummary } from "./components/DailySummary"
+import { TaskModal } from "./components/TaskModal"
+import type { Task, WeeklySummary, DailySummary as DailySummaryType, DateRange } from "./types"
+import { Timer, ListTodo, Brain } from "lucide-react"
+import { getTasks, saveTasks, clearTasks } from "./utils/indexeDB" // Import the IndexedDB utilities
 
 function App() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [showSummary, setShowSummary] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
+  const [newTaskTitle, setNewTaskTitle] = useState("")
+  const [showSummary, setShowSummary] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({
     start: new Date(),
     end: new Date(),
-  });
+  })
 
   const [weeklySummary, setWeeklySummary] = useState<WeeklySummary>({
     totalHours: 0,
     dailyTasks: {},
-  });
+  })
 
   // Load tasks from IndexedDB on mount
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        const savedTasks = await getTasks();
-        setTasks(savedTasks || []);
+        const savedTasks = await getTasks()
+        setTasks(savedTasks || [])
       } catch (error) {
-        console.error('Error loading tasks from IndexedDB:', error);
+        console.error("Error loading tasks from IndexedDB:", error)
       }
-    };
+    }
 
-    loadTasks();
-  }, []);
+    loadTasks()
+  }, [])
 
   // Save tasks to IndexedDB whenever tasks change
   useEffect(() => {
     const saveToDB = async () => {
       try {
-        await saveTasks(tasks);
+        await saveTasks(tasks)
       } catch (error) {
-        console.error('Error saving tasks to IndexedDB:', error);
+        console.error("Error saving tasks to IndexedDB:", error)
       }
-    };
+    }
 
     if (tasks.length > 0) {
-      saveToDB();
+      saveToDB()
     }
-  }, [tasks]);
+  }, [tasks])
 
   const calculateDailySummary = (): DailySummaryType => {
     const totalTime = tasks.reduce((acc, task) => {
-      if (task.status === 'completed' || task.status === 'active') {
-        return acc + task.duration;
+      if (task.status === "completed" || task.status === "active") {
+        return acc + task.duration
       }
-      return acc;
-    }, 0);
+      return acc
+    }, 0)
 
-    const completedTasks = tasks.filter(task => task.status === 'completed').length;
-    const pendingTasks = tasks.filter(task => task.status !== 'completed').length;
+    const completedTasks = tasks.filter((task) => task.status === "completed").length
+    const pendingTasks = tasks.filter((task) => task.status !== "completed").length
 
     return {
       totalTime,
       completedTasks,
       pendingTasks,
       totalTasks: tasks.length,
-    };
-  };
+    }
+  }
 
   useEffect(() => {
     const totalSeconds = tasks.reduce((acc, task) => {
-      if (task.status === 'completed' || task.status === 'active') {
-        return acc + task.duration;
+      if (task.status === "completed" || task.status === "active") {
+        return acc + task.duration
       }
-      return acc;
-    }, 0);
-    const totalHours = totalSeconds / 3600;
+      return acc
+    }, 0)
+    const totalHours = totalSeconds / 3600
 
-    const dailyTasks: { [key: string]: Task[] } = {};
-    tasks.forEach(task => {
-      const day = task.startTime.toLocaleDateString('en-US', { weekday: 'long' });
+    const dailyTasks: { [key: string]: Task[] } = {}
+    tasks.forEach((task) => {
+      const day = task.startTime.toLocaleDateString("en-US", { weekday: "long" })
       if (!dailyTasks[day]) {
-        dailyTasks[day] = [];
+        dailyTasks[day] = []
       }
-      dailyTasks[day].push(task);
-    });
+      dailyTasks[day].push(task)
+    })
 
     setWeeklySummary({
       totalHours,
       dailyTasks,
-    });
-  }, [tasks]);
+    })
+  }, [tasks])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -107,97 +108,77 @@ function App() {
                   duration: task.duration + 1,
                   lastUpdated: new Date(),
                 }
-              : task
-          )
-        );
+              : task,
+          ),
+        )
       }
-    }, 1000);
+    }, 1000)
 
-    return () => clearInterval(timer);
-  }, [activeTaskId]);
+    return () => clearInterval(timer)
+  }, [activeTaskId])
 
   const handleAddTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTaskTitle.trim()) return;
+    e.preventDefault()
+    if (!newTaskTitle.trim()) return
 
     const newTask: Task = {
       id: Date.now().toString(),
       title: newTaskTitle,
       startTime: new Date(),
-      status: 'active',
+      status: "active",
       duration: 0,
       lastUpdated: new Date(),
-    };
+    }
 
     if (activeTaskId) {
       setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === activeTaskId
-            ? { ...task, status: 'paused' }
-            : task
-        )
-      );
+        prevTasks.map((task) => (task.id === activeTaskId ? { ...task, status: "paused" } : task)),
+      )
     }
 
-    setTasks((prevTasks) => [...prevTasks, newTask]);
-    setActiveTaskId(newTask.id);
-    setNewTaskTitle('');
-  };
+    setTasks((prevTasks) => [...prevTasks, newTask])
+    setActiveTaskId(newTask.id)
+    setNewTaskTitle("")
+  }
 
   const handleComplete = (taskId: string) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId
-          ? { ...task, status: 'completed' }
-          : task
-      )
-    );
+    setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? { ...task, status: "completed" } : task)))
     if (activeTaskId === taskId) {
-      setActiveTaskId(null);
+      setActiveTaskId(null)
     }
-  };
+  }
 
   const handlePause = (taskId: string) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId
-          ? { ...task, status: 'paused' }
-          : task
-      )
-    );
+    setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? { ...task, status: "paused" } : task)))
     if (activeTaskId === taskId) {
-      setActiveTaskId(null);
+      setActiveTaskId(null)
     }
-  };
+  }
 
   const handleResume = (taskId: string) => {
     if (activeTaskId) {
       setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === activeTaskId
-            ? { ...task, status: 'paused' }
-            : task
-        )
-      );
+        prevTasks.map((task) => (task.id === activeTaskId ? { ...task, status: "paused" } : task)),
+      )
     }
 
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId
-          ? { ...task, status: 'active' }
-          : task
-      )
-    );
-    setActiveTaskId(taskId);
-  };
+    setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? { ...task, status: "active" } : task)))
+    setActiveTaskId(taskId)
+  }
 
   const handleDateRangeChange = (range: DateRange) => {
-    setDateRange(range);
-  };
+    setDateRange(range)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
       <div className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-extrabold mb-8 text-center flex items-center justify-center space-x-2">
+          <Brain className="w-10 h-10 text-blue-400" />
+          <span className="bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text font-sans">
+            Second Brain
+          </span>
+        </h1>
         <div className="flex justify-between items-center mb-8">
           <Clock />
           <button
@@ -205,7 +186,7 @@ function App() {
             className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
           >
             {showSummary ? <ListTodo className="h-5 w-5" /> : <Timer className="h-5 w-5" />}
-            <span>{showSummary ? 'View Tasks' : 'View Summary'}</span>
+            <span>{showSummary ? "View Tasks" : "View Summary"}</span>
           </button>
         </div>
 
@@ -251,16 +232,17 @@ function App() {
       {selectedDate && (
         <TaskModal
           date={selectedDate}
-          tasks={tasks.filter(task => {
-            const taskDate = task.startTime.toLocaleDateString();
-            const selectedDateStr = selectedDate.toLocaleDateString();
-            return taskDate === selectedDateStr;
+          tasks={tasks.filter((task) => {
+            const taskDate = task.startTime.toLocaleDateString()
+            const selectedDateStr = selectedDate.toLocaleDateString()
+            return taskDate === selectedDateStr
           })}
           onClose={() => setSelectedDate(null)}
         />
       )}
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
+
