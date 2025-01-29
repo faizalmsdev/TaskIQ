@@ -6,6 +6,7 @@ import { DailySummary } from './components/DailySummary';
 import { TaskModal } from './components/TaskModal';
 import { Task, WeeklySummary, DailySummary as DailySummaryType, DateRange } from './types';
 import { Timer, ListTodo } from 'lucide-react';
+import { getTasks, saveTasks, clearTasks } from './utils/indexeDB';  // Import the IndexedDB utilities
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -17,14 +18,42 @@ function App() {
     start: new Date(),
     end: new Date(),
   });
-  
+
   const [weeklySummary, setWeeklySummary] = useState<WeeklySummary>({
     totalHours: 0,
     dailyTasks: {},
   });
 
+  // Load tasks from IndexedDB on mount
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const savedTasks = await getTasks();
+        setTasks(savedTasks || []);
+      } catch (error) {
+        console.error('Error loading tasks from IndexedDB:', error);
+      }
+    };
+
+    loadTasks();
+  }, []);
+
+  // Save tasks to IndexedDB whenever tasks change
+  useEffect(() => {
+    const saveToDB = async () => {
+      try {
+        await saveTasks(tasks);
+      } catch (error) {
+        console.error('Error saving tasks to IndexedDB:', error);
+      }
+    };
+
+    if (tasks.length > 0) {
+      saveToDB();
+    }
+  }, [tasks]);
+
   const calculateDailySummary = (): DailySummaryType => {
-    // Calculate total time including active tasks
     const totalTime = tasks.reduce((acc, task) => {
       if (task.status === 'completed' || task.status === 'active') {
         return acc + task.duration;
@@ -43,7 +72,6 @@ function App() {
     };
   };
 
-  // Update weekly summary whenever tasks change
   useEffect(() => {
     const totalSeconds = tasks.reduce((acc, task) => {
       if (task.status === 'completed' || task.status === 'active') {
@@ -52,8 +80,7 @@ function App() {
       return acc;
     }, 0);
     const totalHours = totalSeconds / 3600;
-    
-    // Group tasks by day
+
     const dailyTasks: { [key: string]: Task[] } = {};
     tasks.forEach(task => {
       const day = task.startTime.toLocaleDateString('en-US', { weekday: 'long' });
@@ -153,7 +180,7 @@ function App() {
         )
       );
     }
-    
+
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId
